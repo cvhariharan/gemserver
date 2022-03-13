@@ -1,5 +1,5 @@
 ## Gemserver
-Gemserver is a Gemini search engine.
+Gemserver is a [geminispace](https://en.wikipedia.org/wiki/Gemini_(protocol)) search engine. Built using [gemini-server](https://github.com/cvhariharan/gemini-server) and uses [gemini-crawler](https://github.com/cvhariharan/gemini-crawler) to index the geminispace.
 
 ### Generating self-signed cert
 ```bash
