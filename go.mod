@@ -1,4 +1,4 @@
-module github.com/cvhariharan/s3-watcher
+module github.com/cvhariharan/gemserver
 
 go 1.17
 
