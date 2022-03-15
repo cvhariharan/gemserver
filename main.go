@@ -56,6 +56,6 @@ func searchHandler(w *gemini.Response, r *gemini.Request) {
 
 func landingPage(w *gemini.Response, r *gemini.Request) {
 	w.SetStatus(gemini.StatusSuccess, "text/gemini")
-	resp := "# Gemini Search Engine\n=> /search Search\n=> https://github.com/cvhariharan/gemini-crawler Crawler Repo\n=> https://github.com/cvhariharan/gemsearch Server Repo\n"
+	resp := "# Gemini Search Engine\n=> /search Search\n=> https://blevesearch.com/docs/Query-String-Query/ Query Guide\n=> https://github.com/cvhariharan/gemini-crawler Crawler Repo\n=> https://github.com/cvhariharan/gemsearch Server Repo\n"
 	w.Write([]byte(resp))
 }
