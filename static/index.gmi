@@ -1,0 +1,5 @@
+# Gemini Search Engine
+=> /search Search
+=> https://blevesearch.com/docs/Query-String-Query/ Query Guide
+=> https://github.com/cvhariharan/gemini-crawler Crawler Repo
+=> https://github.com/cvhariharan/gemsearch Server Repo

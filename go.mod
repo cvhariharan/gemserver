@@ -4,7 +4,8 @@ go 1.17
 
 require (
 	github.com/blevesearch/bleve/v2 v2.3.1
-	github.com/cvhariharan/gemini-server v0.0.0-20220312075415-1a9c0efa83a5
+	github.com/cvhariharan/gemini-server v0.0.0-20220320070623-a4bf15031233
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 )
 
 require (
@@ -25,6 +26,7 @@ require (
 	github.com/blevesearch/zapx/v15 v15.3.3 // indirect
 	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/golang/snappy v0.0.1 // indirect
+	github.com/h2non/filetype v1.1.3 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/steveyen/gtreap v0.1.0 // indirect
 	go.etcd.io/bbolt v1.3.5 // indirect

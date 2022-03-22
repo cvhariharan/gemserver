@@ -1,18 +1,23 @@
 package main
 
 import (
+	"io/fs"
 	"log"
 	"net/url"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/blevesearch/bleve/v2"
 	gemini "github.com/cvhariharan/gemini-server"
+	"github.com/patrickmn/go-cache"
 )
 
-const INDEX = "index"
+var indexAlias bleve.IndexAlias
 
-var index bleve.Index
+// RATE_LIMIT sets the number of requests per minute
+const RATE_LIMIT = 15
 
 func main() {
 	mountPoint := os.Getenv("AWS_EFS_MOUNT")
@@ -20,11 +25,30 @@ func main() {
 		log.Fatal("mount point no set. AWS_EFS_MOUNT empty")
 	}
 
-	index, _ = bleve.Open(filepath.Join(mountPoint, INDEX))
+	indexAlias = bleve.NewIndexAlias()
+	filepath.Walk(mountPoint, func(path string, info fs.FileInfo, err error) error {
+		if info.IsDir() && strings.HasPrefix(info.Name(), "index-") {
+			log.Println(path)
+			if err != nil {
+				return err
+			}
 
-	gemini.HandleFunc("/search", searchHandler)
+			index, err := bleve.Open(path)
+			if err != nil {
+				log.Println(err)
+				return err
+			}
+			indexAlias.Add(index)
+		}
+		return nil
+	})
+	defer indexAlias.Close()
 
-	gemini.HandleFunc("/", landingPage)
+	c := cache.New(60*time.Second, 5*time.Minute)
+
+	gemini.Handle("/search", rateLimit(gemini.Handlerfunc(searchHandler), c))
+
+	gemini.Handle("/", rateLimit(gemini.StripPrefix("/static", gemini.FileServer("./static/index.gmi")), c))
 
 	log.Fatal(gemini.ListenAndServeTLS(":1965", "gemini.crt", "gemini.key"))
 }
@@ -43,7 +67,8 @@ func searchHandler(w *gemini.Response, r *gemini.Request) {
 
 		query := bleve.NewQueryStringQuery(queryStr)
 		searchRequest := bleve.NewSearchRequest(query)
-		searchResult, _ := index.Search(searchRequest)
+		searchResult, _ := indexAlias.Search(searchRequest)
+		log.Println(searchResult)
 		var links string
 		if len(searchResult.Hits) > 0 {
 			for _, v := range searchResult.Hits {
@@ -54,8 +79,24 @@ func searchHandler(w *gemini.Response, r *gemini.Request) {
 	}
 }
 
-func landingPage(w *gemini.Response, r *gemini.Request) {
-	w.SetStatus(gemini.StatusSuccess, "text/gemini")
-	resp := "# Gemini Search Engine\n=> /search Search\n=> https://blevesearch.com/docs/Query-String-Query/ Query Guide\n=> https://github.com/cvhariharan/gemini-crawler Crawler Repo\n=> https://github.com/cvhariharan/gemsearch Server Repo\n"
-	w.Write([]byte(resp))
+func rateLimit(h gemini.Handler, c *cache.Cache) gemini.Handler {
+	return gemini.Handlerfunc(func(w *gemini.Response, r *gemini.Request) {
+		ipPort := strings.Split(w.Body.RemoteAddr().String(), ":")
+		ip := strings.Join(ipPort[:len(ipPort)-1], ":")
+
+		val, ok := c.Get(ip)
+
+		if !ok {
+			c.Set(ip, RATE_LIMIT, cache.DefaultExpiration)
+		} else {
+			reqNo := val.(int)
+			if reqNo <= 0 {
+				w.SetStatus(gemini.StatusTemporaryFailure, "Too many requests")
+				w.SendStatus()
+				return
+			}
+			c.Decrement(ip, 1)
+		}
+		h.ServeGemini(w, r)
+	})
 }
